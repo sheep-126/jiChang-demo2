@@ -446,6 +446,13 @@ function handleCommand(inputText, isButton=false) {
         return;
     }
 
+    // ========== 关键修改：添加数据面板计数 ==========
+    // 语音识别成功后触发计数
+    if (!isButton) {
+        window.recordCall('navigation');
+    }
+    // ==============================================
+
     const cfg = CMD_MAP[cmd];
     addMessage(cfg.desc, 'system');
     speakText(cfg.desc);
