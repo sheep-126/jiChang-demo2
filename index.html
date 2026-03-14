@@ -82,13 +82,16 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* 超级清晰的路线样式 */
+        /* 优化红线样式：适配缩放，无箭头 */
         .route-line {
-            stroke: #ff6a00 !important;
-            stroke-width: 14px !important;
-            stroke-opacity: 1 !important;
+            stroke: #ff0000 !important; /* 纯红色 */
+            stroke-width: 8px !important; /* 适中宽度，适配缩放 */
+            stroke-opacity: 0.8 !important; /* 轻微透明，避免遮挡地图 */
             stroke-linecap: round !important;
+            stroke-linejoin: round !important;
             z-index: 1000 !important;
+            /* 关键：添加缩放适配 */
+            stroke-weight-fixed: true !important;
         }
     </style>
 </head>
@@ -202,15 +205,16 @@ const KEYWORDS = {
 let map = null;
 let markers = [];
 let routePolyline = null;
-let routeArrowMarker = null;
-let arrowIcon = null; // 箭头图标
+// 移除箭头相关变量
+// let routeArrowMarker = null;
+// let arrowIcon = null;
 
 // 5. 辅助函数
 function getLocation(name) {
     return AIRPORT_LOCATIONS[name] || null;
 }
 
-// 6. 初始化高德地图（优化显示细节）
+// 6. 初始化高德地图（修复路线显示问题）
 function initAMap() {
     if (typeof AMap === 'undefined') {
         addMessage('❌ 高德地图API加载失败，请检查Key是否正确', 'system');
@@ -219,28 +223,22 @@ function initAMap() {
 
     try {
         map = new AMap.Map('mapContainer', {
-            zoom: 19,        // 更大初始缩放级别，显示更多细节
+            zoom: 19,
             center: [AIRPORT_LOCATIONS['T3中心'].lng, AIRPORT_LOCATIONS['T3中心'].lat],
             viewMode: '3D',
             resizeEnable: true,
-            // 显示机场内部细节：建筑、道路、POI全开启
             features: ['road', 'building', 'poi', 'bg', 'point'],
-            // 调整地图样式，突出机场区域
             mapStyle: 'amap://styles/normal'
         });
 
-        // 预加载箭头图标（用于路线指示）
-        arrowIcon = new AMap.Icon({
-            size: new AMap.Size(30, 30),
-            image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDBWMjBsLTggOEg2bDcgN0w2IDE2aDJsNy03IDcgN2gybC04LTgtOCA4eiIgZmlsbD0iI2ZmNmEwMCIvPjwvc3ZnPg==',
-            imageSize: new AMap.Size(30, 30)
-        });
+        // 移除箭头图标加载代码
+        // arrowIcon = new AMap.Icon({...});
 
-        // 初始显示多个核心点位，避免地图空白
+        // 初始显示多个核心点位
         const corePoints = ['值机柜台', '安检区', '登机口A12'];
         corePoints.forEach(name => {
             const loc = getLocation(name);
-            addMarker(loc, name, true); // 显示标签
+            addMarker(loc, name, true);
         });
 
         addMessage('✅ 高德地图加载成功（首都机场T3精细视图）', 'system');
@@ -249,32 +247,30 @@ function initAMap() {
     }
 }
 
-// 7. 添加标记点（带标签，更醒目）
+// 7. 添加标记点
 function addMarker(loc, name, showLabel=false) {
     if (!loc) return;
 
-    // 标记主体
     const markerContent = document.createElement('div');
     markerContent.className = `custom-marker marker-${loc.type}`;
     markerContent.innerText = loc.icon || '📍';
-    markerContent.title = `${name}：${loc.desc}`; // 鼠标悬浮显示详情
+    markerContent.title = `${name}：${loc.desc}`;
     
     const marker = new AMap.Marker({
         position: [loc.lng, loc.lat],
         content: markerContent,
-        offset: new AMap.Pixel(-20, -20), // 标记居中
-        zIndex: 1000, // 置顶显示
-        animation: 'AMAP_ANIMATION_DROP' // 下落动画
+        offset: new AMap.Pixel(-20, -20),
+        zIndex: 1000,
+        animation: 'AMAP_ANIMATION_DROP'
     });
 
     marker.setMap(map);
     markers.push(marker);
 
-    // 显示点位标签（可选）
     if (showLabel) {
         const label = new AMap.Text({
             text: name,
-            position: [loc.lng, loc.lat + 0.0001], // 标签在标记下方
+            position: [loc.lng, loc.lat + 0.0001],
             offset: new AMap.Pixel(-20, 0),
             className: 'marker-label',
             zIndex: 1001
@@ -284,62 +280,52 @@ function addMarker(loc, name, showLabel=false) {
     }
 }
 
-// 8. 绘制动态路径（超级粗+带箭头，更清晰）
+// 8. 绘制路线（移除箭头，优化红线缩放）
 function drawRoute(fromLoc, toLoc) {
     if (!fromLoc || !toLoc) return;
 
-    // 主路线（超级粗+高亮）
+    // 优化后的红线样式：适配缩放，无箭头
     routePolyline = new AMap.Polyline({
         path: [[fromLoc.lng, fromLoc.lat], [toLoc.lng, toLoc.lat]],
-        strokeColor: '#ff6a00',
-        strokeWeight: 14,       // 超级粗（14px）
-        strokeOpacity: 1,       // 完全不透明
+        strokeColor: '#ff0000', // 纯红色
+        strokeWeight: 8,        // 适中宽度，适配缩放
+        strokeOpacity: 0.8,     // 轻微透明，避免遮挡
         strokeStyle: 'solid',
         lineJoin: 'round',
-        zIndex: 1000,           // 置顶显示
-        className: 'route-line' // 自定义样式类
+        lineCap: 'round',
+        zIndex: 1000,
+        className: 'route-line',
+        // 关键：开启固定宽度（适配缩放）
+        strokeWeightFixed: true
     });
     routePolyline.setMap(map);
 
-    // 路径箭头（指向终点，更大更醒目）
-    const midLng = (fromLoc.lng + toLoc.lng) / 2;
-    const midLat = (fromLoc.lat + toLoc.lat) / 2;
-    
-    routeArrowMarker = new AMap.Marker({
-        position: [midLng, midLat],
-        icon: arrowIcon,
-        angle: getAngle(fromLoc, toLoc), // 自动旋转箭头方向
-        zIndex: 1001
-    });
-    routeArrowMarker.setMap(map);
+    // 移除箭头绘制代码
+    // const midLng = (fromLoc.lng + toLoc.lng) / 2;
+    // const midLat = (fromLoc.lat + toLoc.lat) / 2;
+    // routeArrowMarker = new AMap.Marker({...});
 }
 
-// 计算路径角度（让箭头指向终点）
-function getAngle(from, to) {
-    const dx = to.lng - from.lng;
-    const dy = to.lat - from.lat;
-    let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-    return angle < 0 ? angle + 360 : angle;
-}
+// 移除角度计算函数（不再需要）
+// function getAngle(from, to) {...}
 
-// 9. 清除地图内容
+// 9. 清除地图内容（移除箭头清除逻辑）
 function clearMap() {
-    // 清除所有标记和标签
     markers.forEach(item => item.remove());
     markers = [];
     
-    // 清除路线和箭头
     if (routePolyline) {
         routePolyline.remove();
         routePolyline = null;
     }
-    if (routeArrowMarker) {
-        routeArrowMarker.remove();
-        routeArrowMarker = null;
-    }
+    // 移除箭头清除代码
+    // if (routeArrowMarker) {
+    //     routeArrowMarker.remove();
+    //     routeArrowMarker = null;
+    // }
 }
 
-// 10. 地图核心操作
+// 10. 地图核心操作（修复路线显示逻辑）
 function handleMapCommand(cmd, params) {
     if (!map) {
         addMessage('❌ 地图未加载完成，请稍后再试', 'system');
@@ -357,7 +343,7 @@ function handleMapCommand(cmd, params) {
             }
             map.setZoom(params.zoom || 20);
             map.panTo([loc.lng, loc.lat]);
-            addMarker(loc, params.name, true); // 显示标签
+            addMarker(loc, params.name, true);
             break;
         
         case "showRoute":
@@ -369,15 +355,18 @@ function handleMapCommand(cmd, params) {
                 return;
             }
 
-            // 添加起点/终点标记（带标签）
+            // 强制设置地图缩放级别，确保路线可见
+            map.setZoom(19.5);
+            
+            // 添加起点/终点标记
             addMarker(fromLoc, params.from.name, true);
             addMarker(toLoc, params.to.name, true);
 
-            // 绘制带箭头的超级粗路线
+            // 绘制红线路线
             drawRoute(fromLoc, toLoc);
 
-            // 适配视角，显示完整路线
-            map.setFitView([...markers, routePolyline], false, [80,80]);
+            // 优化视角适配，确保路线完整显示
+            map.setFitView([...markers, routePolyline], true, [50,50]);
             addMessage(`✅ 已显示【${params.from.name}】→【${params.to.name}】路线`, 'system');
             break;
         
@@ -400,7 +389,7 @@ function handleMapCommand(cmd, params) {
     }
 }
 
-// 11. 聊天消息（恢复回复框功能）
+// 11. 聊天消息
 function addMessage(text, type='system') {
     const box = document.getElementById('chatBox');
     const div = document.createElement('div');
@@ -421,7 +410,7 @@ function speakText(text) {
     window.speechSynthesis.speak(u);
 }
 
-// 13. 指令处理
+// 13. 指令处理（修复路线触发逻辑）
 function handleCommand(inputText, isButton=false) {
     let cmd = '';
     
@@ -430,7 +419,6 @@ function handleCommand(inputText, isButton=false) {
         addMessage(`选择：${CMD_MAP[cmd].name}`, 'user');
     } else {
         addMessage(`语音指令：${inputText}`, 'user');
-        // 模糊匹配关键词（忽略大小写、空格）
         const cleanText = inputText.replace(/\s+/g, '').toLowerCase();
         for (const [c, ks] of Object.entries(KEYWORDS)) {
             if (ks.some(w => cleanText.includes(w.toLowerCase()))) { 
@@ -446,37 +434,38 @@ function handleCommand(inputText, isButton=false) {
         return;
     }
 
-    // ========== 关键修改：添加数据面板计数 ==========
-    // 语音识别成功后触发计数
+    // 数据面板计数
     if (!isButton) {
         window.recordCall('navigation');
     }
-    // ==============================================
 
     const cfg = CMD_MAP[cmd];
     addMessage(cfg.desc, 'system');
     speakText(cfg.desc);
 
-    // 地图操作
+    // 强制触发地图操作，确保路线显示
     if (cfg.route) {
-        handleMapCommand("showRoute", {
-            from: { name: cfg.route.from },
-            to: { name: cfg.route.to }
-        });
+        // 延迟执行，确保地图完全加载
+        setTimeout(() => {
+            handleMapCommand("showRoute", {
+                from: { name: cfg.route.from },
+                to: { name: cfg.route.to }
+            });
+        }, 100);
     } else {
-        handleMapCommand("highlight", { name: cfg.name });
+        setTimeout(() => {
+            handleMapCommand("highlight", { name: cfg.name });
+        }, 100);
     }
 }
 
-// 14. 语音识别（完整恢复+兼容优化）
+// 14. 语音识别
 function initVoiceRecognition() {
     const micBtn = document.getElementById('micBtn');
-    // 兼容所有浏览器的语音识别API
     const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition;
     
     if (!Recognition) {
         addMessage('⚠️ 当前浏览器不支持语音识别（建议用Edge/Chrome），请点击按钮操作', 'permission');
-        // 备用输入方式
         micBtn.onclick = ()=>{
             const inputText = prompt('请输入导航指令（如：安检、值机、登机口）：');
             if(inputText && inputText.trim()){
@@ -486,25 +475,21 @@ function initVoiceRecognition() {
         return;
     }
 
-    // 初始化语音识别
     const recognition = new Recognition();
-    recognition.lang = 'zh-CN'; // 中文识别
-    recognition.continuous = false; // 单次识别
-    recognition.interimResults = false; // 只返回最终结果
-    recognition.maxAlternatives = 1; // 只返回最优结果
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
     let isListening = false;
 
-    // 识别成功
     recognition.onresult = (event)=>{
         const resultText = event.results[0][0].transcript.trim();
         handleCommand(resultText);
-        // 重置麦克风状态
         micBtn.classList.remove('active');
         isListening = false;
     };
 
-    // 识别错误
     recognition.onerror = (event)=>{
         let errorMsg = '';
         switch(event.error) {
@@ -519,7 +504,6 @@ function initVoiceRecognition() {
         isListening = false;
     };
 
-    // 识别结束
     recognition.onend = ()=>{
         if(isListening){
             addMessage('🎤 语音识别已结束', 'system');
@@ -528,7 +512,6 @@ function initVoiceRecognition() {
         isListening = false;
     };
 
-    // 麦克风按钮事件（按下说话，松开结束）
     micBtn.onmousedown = (e)=>{
         e.preventDefault();
         if(isListening) return;
@@ -557,26 +540,22 @@ function initVoiceRecognition() {
         }
     };
 
-    // 提示开启麦克风权限
     addMessage('💡 点击麦克风按钮并允许权限，即可语音导航', 'system');
 }
 
 // 15. 页面初始化
 document.addEventListener('DOMContentLoaded', ()=>{
-    // 等待高德API加载
-    setTimeout(initAMap, 500);
+    // 延长高德API加载等待时间，确保加载完成
+    setTimeout(initAMap, 800);
     
-    // 初始化语音识别
     initVoiceRecognition();
     
-    // 功能按钮点击事件
     document.querySelectorAll('.func-btn').forEach(btn=>{
         btn.addEventListener('click',()=>{
             handleCommand(btn.dataset.cmd, true);
         });
     });
     
-    // 停止播报按钮
     document.getElementById('stopBtn').onclick = ()=>{
         window.speechSynthesis.cancel();
         addMessage('⏹️ 已停止语音播报', 'system');
