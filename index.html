@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>首都机场T3语音导航 | 完整版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>首都机场T3语音导航 | 智能值机 + 数据面板</title>
   <!-- 高德地图JS API v2.0 (使用您提供的Key) -->
   <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=37998adb2d5488949647812aebeaf528"></script>
   <style>
@@ -75,6 +75,7 @@
       cursor: pointer;
       transition: all .2s;
       font-size: 14px;
+      padding: 12px 0;
     }
 
     .func-btn:hover {
@@ -163,12 +164,15 @@
       background: #fff;
       border-radius: 18px;
       padding: 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, .08)
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
+      display: flex;
+      flex-direction: column;
     }
 
     .chat-box {
-      height: 100%;
-      overflow-y: auto
+      flex: 1;
+      overflow-y: auto;
+      max-height: calc(100vh - 40px);
     }
 
     .chat-bubble {
@@ -284,6 +288,85 @@
       stroke-width: 6px !important;
       stroke-opacity: 0.9 !important;
     }
+
+    /* 值机模态窗（轻提示风格，不破坏原有布局） */
+    .checkin-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 20000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0.2s, opacity 0.2s;
+    }
+    .checkin-modal-overlay.active {
+      visibility: visible;
+      opacity: 1;
+    }
+    .checkin-modal {
+      background: white;
+      width: 420px;
+      max-width: 90vw;
+      border-radius: 32px;
+      box-shadow: 0 25px 40px rgba(0,0,0,0.3);
+      overflow: hidden;
+      animation: modalPop 0.2s ease-out;
+    }
+    @keyframes modalPop {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .checkin-header {
+      background: #ff6a00;
+      color: white;
+      padding: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .checkin-header span {
+      cursor: pointer;
+      font-size: 28px;
+      line-height: 1;
+    }
+    .checkin-body {
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .checkin-body p {
+      font-size: 18px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .checkin-btn {
+      background: #005792;
+      color: white;
+      border: none;
+      padding: 12px 32px;
+      border-radius: 48px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .checkin-btn:hover {
+      background: #ff6a00;
+      transform: scale(1.02);
+    }
+    .checkin-note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #888;
+    }
   </style>
 </head>
 
@@ -291,11 +374,11 @@
   <div class="container">
     <div class="left-panel">
       <div class="func-section">
-        <div class="title">✈️ 首都机场 T3 语音导航</div>
+        <div class="title">✈️ 首都机场 T3 语音导航 · 智能值机</div>
         <div class="func-grid">
           <button class="func-btn func-btn-checkin" data-cmd="checkin">
             <div class="func-icon">🛄</div>
-            <div>值机柜台</div>
+            <div>值机柜台 · 在线值机</div>
           </button>
           <button class="func-btn" data-cmd="security">
             <div class="func-icon">🔍</div>
@@ -337,7 +420,7 @@
       </div>
 
       <div class="map-section">
-        <div class="map-title">📍 首都机场 T3 · 超分散布局便于查看路线</div>
+        <div class="map-title">📍 首都机场 T3 · 超分散布局 (路线清晰)</div>
         <div class="airport-map-container">
           <div id="mapContainer"></div>
         </div>
@@ -351,52 +434,53 @@
 
     <div class="right-panel">
       <div class="chat-box" id="chatBox">
-        <div class="chat-bubble system-bubble">✈️ 首都机场 T3 语音导航已就绪</div>
-        <div class="chat-bubble system-bubble">🗣️ 支持语音：安检、登机口、餐厅、卫生间等</div>
-        <div class="chat-bubble permission-bubble">💡 地点已超分散布局，路线更清晰</div>
+        <div class="chat-bubble system-bubble">✈️ 首都机场 T3 语音导航已就绪（支持值机语音触发）</div>
+        <div class="chat-bubble system-bubble">🗣️ 说“值机”、“办理值机”可打开值机页面，记录操作日志</div>
+        <div class="chat-bubble system-bubble">📍 支持安检/登机口/餐厅等语音导航，自动显示路线并播报</div>
       </div>
     </div>
   </div>
 
+  <!-- 值机模态窗 (模拟值机页面跳转/显隐切换) -->
+  <div id="checkinModalOverlay" class="checkin-modal-overlay">
+    <div class="checkin-modal">
+      <div class="checkin-header">
+        🧾 在线值机 · 首都机场 T3
+        <span id="closeCheckinModal">&times;</span>
+      </div>
+      <div class="checkin-body">
+        <p>✅ 欢迎使用智能值机服务</p>
+        <p>请确认您的航班信息，或扫描登机牌二维码。</p>
+        <button id="confirmCheckinBtn" class="checkin-btn">✈️ 确认值机</button>
+        <div class="checkin-note">模拟值机界面 - 点击确认记录操作日志</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 引入 mock-api.js 和 data-panel.js 新增统计面板及记录功能 -->
+  <script src="mock-api.js"></script>
+  <script src="data-panel.js"></script>
+
   <script>
     // ================== 首都机场T3坐标数据 - 超分散布局 ==================
-    // 以值机柜台为中心，其他地点分布在八个不同方向，距离更远
-    // 让每条路线都有足够的空间显示
     const AIRPORT_LOCATIONS = {
-      // 中心区域 - 值机柜台作为起点
       '值机柜台': { lng: 116.610512, lat: 40.080123, type: 'checkin', icon: '🛄', desc: '国内值机区C岛' },
-
-      // 正北方向 (远)
       'T3中心': { lng: 116.610823, lat: 40.081356, type: 'checkin', icon: '📍', desc: 'T3航站楼中心' },
-
-      // 西北方向
       '餐厅': { lng: 116.608876, lat: 40.081043, type: 'restaurant', icon: '🍽️', desc: '2层中西餐厅' },
-
-      // 东北方向
       '登机口A12': { lng: 116.613011, lat: 40.080408, type: 'gate', icon: '🚪', desc: 'A12登机口（国内出发）' },
-
-      // 正东方向
       '安检区': { lng: 116.612534, lat: 40.079812, type: 'security', icon: '🔍', desc: '国内安检通道1-5' },
       '免税店': { lng: 116.613234, lat: 40.079734, type: 'shop', icon: '🛍️', desc: '2层免税店（美妆区）' },
-
-      // 东南方向
       '行李提取': { lng: 116.612567, lat: 40.077867, type: 'baggage', icon: '🧳', desc: '1层行李提取转盘10-15' },
       '交通中心': { lng: 116.611734, lat: 40.077954, type: 'transport', icon: '🚌', desc: 'T3交通中心（机场快轨）' },
-
-      // 正南方向
       '候机区': { lng: 116.610845, lat: 40.078176, type: 'waiting', icon: '⏳', desc: 'A12登机口候机区' },
-
-      // 西南方向
       '失物招领': { lng: 116.608543, lat: 40.078876, type: 'lost', icon: '🔎', desc: '1层服务台旁' },
       '卫生间': { lng: 116.608943, lat: 40.078643, type: 'toilet', icon: '🚻', desc: '安检后2层卫生间' },
-
-      // 正西方向
       '特殊旅客': { lng: 116.608289, lat: 40.079845, type: 'special', icon: '👴', desc: '值机区特殊旅客服务台' }
     };
 
-    // ================== 指令配置 ==================
+    // 指令配置
     const CMD_MAP = {
-      checkin: { name: '值机柜台', desc: '值机柜台位于3号门区域C岛，请提前2小时办理登机牌及行李托运。', route: null },
+      checkin: { name: '值机柜台', desc: '值机柜台位于3号门区域C岛，可点击在线值机快捷办理。', route: null },
       security: { name: '安检区', desc: '安检通道在值机柜台后方50米处，请提前取出电脑、充电宝等物品。', route: null },
       gate: { name: '登机口A12', desc: '登机口A12位于安检区右侧，步行约3分钟，建议提前30分钟到达。', route: null },
       restaurant: { name: '餐厅', desc: '餐厅位于航站楼2层西侧，提供中西餐、咖啡及简餐，营业时间6:00-22:00。', route: null },
@@ -409,9 +493,9 @@
       waiting: { name: '候机区', desc: '候机区位于各登机口旁，提供充电、饮水、休息区等服务。', route: null }
     };
 
-    // ================== 关键词匹配 ==================
+    // 关键词库 (增强值机触发)
     const KEYWORDS = {
-      checkin: ['值机', '登机牌', '托运行李', '办票', 'C岛', '值机柜台'],
+      checkin: ['值机', '办理值机', '在线值机', '登机牌', '托运行李', '办票', 'C岛', '值机柜台'],
       security: ['安检', '安全检查', '过安检', '安检通道'],
       gate: ['登机口', 'A12', '上飞机', '登机', '国内出发'],
       restaurant: ['餐厅', '吃饭', '饿了', '咖啡', '中西餐'],
@@ -424,185 +508,23 @@
       waiting: ['候机区', '等待', '休息', '充电']
     };
 
-    // ================== 全局变量 ==================
     let map = null;
     let markers = [];
     let routePolyline = null;
+    let currentSpeaking = false;
 
-    // ================== 辅助函数 ==================
-    function getLocation(name) {
-      return AIRPORT_LOCATIONS[name] || null;
-    }
-
-    // ================== 初始化地图 ==================
-    function initMap() {
-      const container = document.getElementById('mapContainer');
-      if (!container) {
-        console.error('地图容器不存在');
-        return;
-      }
-
-      if (typeof AMap === 'undefined') {
-        addMessage('❌ 高德地图API加载失败，请检查网络或Key', 'system');
-        return;
-      }
-
+    // ========== 语音播报 ==========
+    function speakText(text) {
       try {
-        // 创建地图实例 - 启用所有交互
-        map = new AMap.Map('mapContainer', {
-          zoom: 15.5,                       // 初始缩放级别更低，显示全貌
-          center: [116.610512, 40.080123],  // 值机柜台为中心
-          viewMode: '2D',
-          scrollWheel: true,
-          dragEnable: true,
-          doubleClickZoom: true,
-          keyboardEnable: true,
-          zoomEnable: true,
-          touchZoom: true,
-          pinchEnable: true,
-          rotateEnable: false,
-          resizeEnable: true
-        });
-
-        // 地图加载完成
-        map.on('complete', function () {
-          console.log('地图加载完成');
-          addMessage('✅ 高德地图加载成功，地点已超分散布局', 'system');
-
-          // 添加所有标记
-          addAllMarkers();
-
-          // 调整视野显示所有标记
-          if (markers.length > 0) {
-            map.setFitView(markers);
-          }
-        });
-
-      } catch (e) {
-        console.error('初始化失败:', e);
-        addMessage(`❌ 地图初始化失败: ${e.message}`, 'system');
-      }
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 0.95;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) { console.log('语音失败:', e); }
     }
 
-    // ================== 添加所有标记 ==================
-    function addAllMarkers() {
-      for (const [name, loc] of Object.entries(AIRPORT_LOCATIONS)) {
-        // 创建标记内容
-        const markerContent = document.createElement('div');
-        markerContent.className = `custom-marker marker-${loc.type}`;
-        markerContent.innerHTML = loc.icon;
-        markerContent.title = `${name}\n${loc.desc}`;
-
-        // 创建标记
-        const marker = new AMap.Marker({
-          position: [loc.lng, loc.lat],
-          content: markerContent,
-          offset: new AMap.Pixel(-20, -20),
-          clickable: true
-        });
-
-        // 标记点击事件
-        marker.on('click', () => {
-          addMessage(`📍 ${name}：${loc.desc}`, 'system');
-          speakText(`${name}，${loc.desc}`);
-        });
-
-        marker.setMap(map);
-        markers.push(marker);
-
-        // 添加文字标签
-        const label = new AMap.Text({
-          text: name,
-          position: [loc.lng, loc.lat + 0.00015],
-          offset: new AMap.Pixel(0, -35),
-          style: {
-            'background-color': 'white',
-            'border': '1px solid #005792',
-            'border-radius': '16px',
-            'padding': '4px 10px',
-            'font-size': '12px',
-            'color': '#005792',
-            'font-weight': 'bold',
-            'box-shadow': '0 2px 6px rgba(0,0,0,0.2)',
-            'white-space': 'nowrap'
-          }
-        });
-
-        label.setMap(map);
-        markers.push(label);
-      }
-    }
-
-    // ================== 绘制从值机柜台到目标点的路线并放大到最佳视野（无闪烁）==================
-    function drawRouteFromCheckin(toName) {
-      const fromLoc = AIRPORT_LOCATIONS['值机柜台'];
-      const toLoc = AIRPORT_LOCATIONS[toName];
-
-      if (!fromLoc || !toLoc) {
-        addMessage(`❌ 无法绘制路线：找不到起点或终点`, 'system');
-        return;
-      }
-
-      // 清除旧路线
-      if (routePolyline) {
-        routePolyline.remove();
-      }
-
-      // 创建新路线
-      routePolyline = new AMap.Polyline({
-        path: [
-          [fromLoc.lng, fromLoc.lat],
-          [toLoc.lng, toLoc.lat]
-        ],
-        strokeColor: '#ff0000',
-        strokeWeight: 6,
-        strokeOpacity: 0.9,
-        strokeStyle: 'solid'
-      });
-
-      routePolyline.setMap(map);
-
-      // ===== 修复：直接使用 setBounds，不先调用 setZoom 和 panTo，避免闪烁 =====
-      // 计算包含整条路线和边距的边界范围（增加边距，因为地点更分散了）
-      const padding = 0.0015; // 更大的边距，确保路线不贴边
-
-      const minLng = Math.min(fromLoc.lng, toLoc.lng) - padding;
-      const minLat = Math.min(fromLoc.lat, toLoc.lat) - padding;
-      const maxLng = Math.max(fromLoc.lng, toLoc.lng) + padding;
-      const maxLat = Math.max(fromLoc.lat, toLoc.lat) + padding;
-
-      const bounds = new AMap.Bounds(
-        new AMap.LngLat(minLng, minLat),
-        new AMap.LngLat(maxLng, maxLat)
-      );
-
-      // 直接使用 setBounds，高德会自动计算最合适的缩放级别和中心点
-      // 避免多次操作导致的闪烁
-      map.setBounds(bounds);
-
-      // 计算距离并显示
-      const distance = calculateDistance(fromLoc, toLoc);
-      addMessage(`🚶 从值机柜台到${toName}的路线（距离约${distance}米）`, 'system');
-    }
-
-    // ================== 计算两点间距离（简单估算）==================
-    function calculateDistance(loc1, loc2) {
-      // 粗略估算，1度约111公里，这里只是大概显示
-      const latDiff = Math.abs(loc1.lat - loc2.lat) * 111000;
-      const lngDiff = Math.abs(loc1.lng - loc2.lng) * 111000 * Math.cos(loc1.lat * Math.PI / 180);
-      const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-      return Math.round(distance);
-    }
-
-    // ================== 清除路线 ==================
-    function clearRoute() {
-      if (routePolyline) {
-        routePolyline.remove();
-        routePolyline = null;
-      }
-    }
-
-    // ================== 聊天消息 ==================
+    // ========== 聊天消息 ==========
     function addMessage(text, type = 'system') {
       const chatBox = document.getElementById('chatBox');
       const div = document.createElement('div');
@@ -610,33 +532,135 @@
       div.textContent = text;
       chatBox.appendChild(div);
       chatBox.scrollTop = chatBox.scrollHeight;
-
-      // 最多保留15条消息
-      while (chatBox.children.length > 15) {
-        chatBox.removeChild(chatBox.children[0]);
-      }
+      while (chatBox.children.length > 20) chatBox.removeChild(chatBox.children[0]);
     }
 
-    // ================== 语音播报 ==================
-    function speakText(text) {
+    // ========== 值机模块: 显示值机页面 + 日志记录 ==========
+    // 定义全局函数 window.openCheckinPage() 实现值机页面显隐切换
+    window.openCheckinPage = function() {
+      const overlay = document.getElementById('checkinModalOverlay');
+      if (overlay) {
+        overlay.classList.add('active');
+        addMessage('🪪 打开值机服务页面，请完成值机操作', 'system');
+      } else {
+        addMessage('⚠️ 值机页面加载失败', 'system');
+      }
+    };
+
+    function closeCheckinModal() {
+      const overlay = document.getElementById('checkinModalOverlay');
+      if (overlay) overlay.classList.remove('active');
+    }
+
+    // 值机成功后的逻辑 (调用日志接口记录 module:'checkin', action:'confirm')
+    async function onCheckinConfirm() {
+      addMessage('✅ 值机成功！正在记录操作日志...', 'system');
+      speakText('值机办理成功，感谢您的使用。');
+      // 模拟值机成功调用 POST /api/log (这里用已有的 mockAPI 扩展，但需求独立日志)
+      // 根据任务要求: 值机成功后调用 POST /api/log 接口，记录 module:'checkin'、action:'confirm' 操作日志
+      // 由于 mock-api.js 已提供调用计数，但为了准确体现日志接口，增加一个专门的 log 模拟调用
       try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-CN';
-        utterance.rate = 1;
-        window.speechSynthesis.speak(utterance);
-      } catch (e) {
-        console.log('语音播报失败:', e);
+        // 模拟后端日志接口 (独立于调用次数面板，但可复用)
+        if (window.mockAPI && typeof window.mockAPI.postLog === 'function') {
+          await window.mockAPI.postLog({ module: 'checkin', action: 'confirm' });
+        } else {
+          // 兼容：直接在控制台模拟，并同时调用 recordCall('checkin') 增加统计（任务二额外需求）
+          console.log('[POST /api/log] 模拟值机日志: module=checkin, action=confirm');
+          // 同时也调用 recordCall('checkin') 增加值机调用统计（任务一中也要求值机成功调用 recordCall）
+          if (window.recordCall) await window.recordCall('checkin');
+        }
+        addMessage('📊 操作日志已记录 (值机确认)', 'system');
+      } catch (err) {
+        console.error('日志记录失败', err);
+      } finally {
+        closeCheckinModal();
       }
     }
 
-    // ================== 处理指令 ==================
-    function handleCommand(input, isButton = false) {
-      let cmd = '';
+    // ========== 地图初始化及标记 ==========
+    function initMap() {
+      if (typeof AMap === 'undefined') {
+        addMessage('❌ 高德地图API加载失败', 'system');
+        return;
+      }
+      map = new AMap.Map('mapContainer', {
+        zoom: 15.2,
+        center: [116.610512, 40.080123],
+        viewMode: '2D',
+        scrollWheel: true,
+        dragEnable: true
+      });
+      map.on('complete', () => {
+        addMessage('✅ 高德地图已加载，地点超分散布局', 'system');
+        addAllMarkers();
+        if (markers.length) map.setFitView(markers);
+      });
+    }
 
+    function addAllMarkers() {
+      for (const [name, loc] of Object.entries(AIRPORT_LOCATIONS)) {
+        const markerContent = document.createElement('div');
+        markerContent.className = `custom-marker marker-${loc.type}`;
+        markerContent.innerHTML = loc.icon;
+        markerContent.title = `${name}\n${loc.desc}`;
+        const marker = new AMap.Marker({
+          position: [loc.lng, loc.lat],
+          content: markerContent,
+          offset: new AMap.Pixel(-20, -20),
+          clickable: true
+        });
+        marker.on('click', () => {
+          addMessage(`📍 ${name}：${loc.desc}`, 'system');
+          speakText(`${name}，${loc.desc}`);
+        });
+        marker.setMap(map);
+        markers.push(marker);
+        // 文字标签
+        const label = new AMap.Text({
+          text: name,
+          position: [loc.lng, loc.lat + 0.00015],
+          offset: new AMap.Pixel(0, -35),
+          style: { 'background-color': 'white', 'border': '1px solid #005792', 'border-radius': '16px', 'padding': '4px 10px', 'font-size': '12px', 'color': '#005792', 'font-weight': 'bold', 'white-space': 'nowrap' }
+        });
+        label.setMap(map);
+        markers.push(label);
+      }
+    }
+
+    function calculateDistance(loc1, loc2) {
+      const latDiff = Math.abs(loc1.lat - loc2.lat) * 111000;
+      const lngDiff = Math.abs(loc1.lng - loc2.lng) * 111000 * Math.cos(loc1.lat * Math.PI / 180);
+      return Math.round(Math.sqrt(latDiff * latDiff + lngDiff * lngDiff));
+    }
+
+    function drawRouteFromCheckin(toName) {
+      const fromLoc = AIRPORT_LOCATIONS['值机柜台'];
+      const toLoc = AIRPORT_LOCATIONS[toName];
+      if (!fromLoc || !toLoc) return;
+      if (routePolyline) routePolyline.remove();
+      routePolyline = new AMap.Polyline({
+        path: [[fromLoc.lng, fromLoc.lat], [toLoc.lng, toLoc.lat]],
+        strokeColor: '#ff0000', strokeWeight: 6, strokeOpacity: 0.9
+      });
+      routePolyline.setMap(map);
+      const padding = 0.0015;
+      const bounds = new AMap.Bounds(
+        new AMap.LngLat(Math.min(fromLoc.lng, toLoc.lng) - padding, Math.min(fromLoc.lat, toLoc.lat) - padding),
+        new AMap.LngLat(Math.max(fromLoc.lng, toLoc.lng) + padding, Math.max(fromLoc.lat, toLoc.lat) + padding)
+      );
+      map.setBounds(bounds);
+      const dist = calculateDistance(fromLoc, toLoc);
+      addMessage(`🚶 从值机柜台到${toName}的路线（距离约${dist}米）`, 'system');
+    }
+
+    function clearRoute() { if (routePolyline) { routePolyline.remove(); routePolyline = null; } }
+
+    // ========== 核心指令处理 + 任务1记录调用 ==========
+    async function handleCommand(input, isButton = false) {
+      let cmd = '';
       if (isButton) {
         cmd = input;
-        addMessage(`选择：${CMD_MAP[cmd].name}`, 'user');
+        addMessage(`选择：${CMD_MAP[cmd]?.name || cmd}`, 'user');
       } else {
         addMessage(`语音指令：${input}`, 'user');
         const cleanText = input.replace(/\s+/g, '').toLowerCase();
@@ -649,105 +673,107 @@
       }
 
       if (!cmd || !CMD_MAP[cmd]) {
-        addMessage('❌ 未识别，请说：安检、登机口、餐厅、卫生间等', 'system');
-        speakText('我没听懂，请说安检、登机口、餐厅、卫生间等指令');
+        addMessage('❌ 未识别，请说：值机、安检、登机口、餐厅等', 'system');
+        speakText('我没听懂，请说安检、登机口、餐厅或者值机等指令');
         return;
+      }
+
+      // ========== 任务一 & 语音识别调用记录: 导航类指令调用 window.recordCall('navigation') ==========
+      // 除值机按钮外，其他导航指令均记录导航调用（值机单独处理）
+      if (cmd !== 'checkin') {
+        if (window.recordCall) {
+          await window.recordCall('navigation');
+          console.log('[recordCall] 记录 navigation 调用');
+        }
       }
 
       const config = CMD_MAP[cmd];
       addMessage(config.desc, 'system');
       speakText(config.desc);
-
-      // 清除旧路线
       clearRoute();
 
-      // 如果是值机柜台按钮，只播报并放大，不画路线
+      // 值机特殊流程：显示值机页面，并且需要记录 checkin 调用（值机触发语音识别时）
       if (cmd === 'checkin') {
-        // 放大到值机柜台
+        // 如果是值机指令（按钮或语音触发），调用 recordCall('checkin') 记录值机调用统计 (任务一)
+        if (window.recordCall) {
+          await window.recordCall('checkin');
+          console.log('[recordCall] 记录 checkin 调用 (值机指令触发)');
+        }
+        // 打开值机页面 (显隐切换)
+        window.openCheckinPage();
+        // 同时放大值机柜台视野
         const loc = AIRPORT_LOCATIONS['值机柜台'];
-        if (loc) {
-          map.setZoom(19);
+        if (loc && map) {
+          map.setZoom(18);
           map.panTo([loc.lng, loc.lat]);
         }
-      } else {
-        // 其他按钮：绘制从值机柜台到目标点的路线并放大到最佳视野（无闪烁）
-        drawRouteFromCheckin(config.name);
-      }
-    }
-
-    // ================== 初始化语音识别 ==================
-    function initVoiceRecognition() {
-      const micBtn = document.getElementById('micBtn');
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-      if (!SpeechRecognition) {
-        addMessage('⚠️ 浏览器不支持语音识别，请点击按钮', 'permission');
-        micBtn.onclick = () => {
-          const text = prompt('请输入导航指令：');
-          if (text) handleCommand(text);
-        };
         return;
       }
 
+      // 其他导航: 绘制路线
+      drawRouteFromCheckin(config.name);
+    }
+
+    // ========== 语音识别初始化 ==========
+    function initVoiceRecognition() {
+      const micBtn = document.getElementById('micBtn');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        addMessage('⚠️ 浏览器不支持语音识别，请手动点击按钮', 'permission');
+        micBtn.onclick = () => { const txt = prompt('请输入导航指令:'); if (txt) handleCommand(txt); };
+        return;
+      }
       const recognition = new SpeechRecognition();
       recognition.lang = 'zh-CN';
       recognition.continuous = false;
-      recognition.interimResults = false;
-
       let isListening = false;
-
-      recognition.onresult = (event) => {
+      recognition.onresult = async (event) => {
         const text = event.results[0][0].transcript;
-        handleCommand(text);
+        await handleCommand(text);
         micBtn.classList.remove('active');
         isListening = false;
       };
-
-      recognition.onerror = () => {
-        addMessage(`❌ 语音识别错误`, 'system');
-        micBtn.classList.remove('active');
-        isListening = false;
-      };
-
-      recognition.onend = () => {
-        micBtn.classList.remove('active');
-        isListening = false;
-      };
-
+      recognition.onerror = () => { micBtn.classList.remove('active'); isListening = false; addMessage('🎙️ 语音识别错误', 'system'); };
+      recognition.onend = () => { micBtn.classList.remove('active'); isListening = false; };
       micBtn.onclick = () => {
-        if (isListening) {
-          recognition.stop();
-        } else {
-          try {
-            recognition.start();
-            isListening = true;
-            micBtn.classList.add('active');
-            addMessage('🎤 正在倾听...', 'system');
-          } catch (e) {
-            addMessage('❌ 启动失败', 'system');
-          }
+        if (isListening) recognition.stop();
+        else {
+          try { recognition.start(); isListening = true; micBtn.classList.add('active'); addMessage('🎤 正在倾听...', 'system'); } 
+          catch(e) { addMessage('❌ 启动失败', 'system'); }
         }
       };
     }
 
-    // ================== 页面加载完成 ==================
-    window.addEventListener('load', function () {
-      // 延迟一点确保DOM完全加载
-      setTimeout(initMap, 300);
+    // 页面加载
+    window.addEventListener('load', async () => {
+      setTimeout(initMap, 200);
       initVoiceRecognition();
 
-      // 为所有按钮绑定点击事件
+      // 绑定功能按钮
       document.querySelectorAll('.func-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          handleCommand(btn.dataset.cmd, true);
-        });
+        btn.addEventListener('click', () => handleCommand(btn.dataset.cmd, true));
       });
+      document.getElementById('stopBtn').onclick = () => { window.speechSynthesis.cancel(); addMessage('⏹️ 已停止播报', 'system'); };
+      // 值机关闭/确认事件
+      const closeBtn = document.getElementById('closeCheckinModal');
+      if (closeBtn) closeBtn.onclick = closeCheckinModal;
+      const confirmBtn = document.getElementById('confirmCheckinBtn');
+      if (confirmBtn) confirmBtn.onclick = onCheckinConfirm;
+      // 点击遮罩关闭
+      const overlay = document.getElementById('checkinModalOverlay');
+      if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeCheckinModal(); });
 
-      // 停止播报按钮
-      document.getElementById('stopBtn').onclick = () => {
-        window.speechSynthesis.cancel();
-        addMessage('⏹️ 已停止播报', 'system');
-      };
+      // 扩展 mockAPI 使其支持 postLog 以便完全满足后端API需求 (让值机日志独立)
+      if (window.mockAPI && !window.mockAPI.postLog) {
+        window.mockAPI.postLog = async (logData) => {
+          console.log('[POST /api/log]', logData);
+          await new Promise(r => setTimeout(r, 50));
+          return { success: true };
+        };
+      }
+      // 确保 recordCall 已经存在（data-panel 已提供）
+      if (!window.recordCall) console.warn('recordCall 未加载');
+      else console.log('✅ 数据面板已加载，支持调用计数');
     });
   </script>
 </body>
