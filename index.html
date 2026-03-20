@@ -1,566 +1,755 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>首都机场T3语音导航 | 完整版</title>
-    <!-- 替换为你的高德Key！！！ -->
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=37998adb2d5488949647812aebeaf528"></script>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",sans-serif}
-        html,body{width:100vw;height:100vh;overflow:hidden;background:#eef7fc}
-        .container{width:100vw;height:100vh;display:flex;padding:15px;gap:15px}
-        
-        .left-panel{flex: 5;display: flex;flex-direction: column;gap:15px;}
-        .func-section{
-            flex: 2;background:#fff;border-radius:18px;padding:20px;
-            box-shadow:0 4px 12px rgba(0,0,0,.08);display:flex;flex-direction:column;
-        }
-        .title{font-size:22px;color:#005792;text-align:center;margin-bottom:15px;font-weight:600;}
-        .func-grid{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-        .func-btn{
-            display:flex;flex-direction:column;align-items:center;justify-content:center;
-            border:none;border-radius:12px;background:#005792;color:#fff;cursor:pointer;
-            transition:all .2s;font-size:14px;
-        }
-        .func-btn:hover{transform:scale(1.03)}
-        .func-btn-checkin{grid-column:span 2;background:#ff6a00}
-        .func-icon{font-size:26px;margin-bottom:6px}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>首都机场T3语音导航 | 完整版</title>
+  <!-- 高德地图JS API v2.0 (使用您提供的Key) -->
+  <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=37998adb2d5488949647812aebeaf528"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Microsoft YaHei", sans-serif
+    }
 
-        .map-section{
-            flex: 3;background:#fff;border-radius:18px;padding:15px;
-            box-shadow:0 4px 12px rgba(0,0,0,.08);display:flex;flex-direction:column;
-        }
-        .map-title{font-size:16px;color:#005792;text-align:center;margin-bottom:10px;font-weight:600;}
-        .airport-map-container{
-            flex:1;position:relative;border-radius:10px;
-            overflow:hidden;border:1px solid #eee;
-        }
+    html,
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #eef7fc
+    }
 
-        .ctrl-btns{height:60px;display:flex;gap:15px;align-items:center;justify-content:center}
-        .mic-btn-ctrl{width:60px;height:60px;border-radius:50%;border:none;background:#005792;color:#fff;font-size:26px;cursor:pointer}
-        .mic-btn-ctrl.active{background:#f44336;transform:scale(1.1)}
-        .stop-btn{padding:10px 20px;border:none;border-radius:8px;background:#f44336;color:#fff;cursor:pointer}
+    .container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      padding: 15px;
+      gap: 15px
+    }
 
-        .right-panel{width:420px;background:#fff;border-radius:18px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
-        .chat-box{height:100%;overflow-y:auto}
-        .chat-bubble{max-width:85%;padding:10px 14px;border-radius:14px;margin:8px 0;font-size:14px}
-        .user-bubble{background:#005792;color:#fff;margin-left:auto}
-        .system-bubble{background:#f8f9fa;color:#333;margin-right:auto;border:1px solid #eee}
-        .permission-bubble{background:#fff3e0;color:#ff6a00;border-left:3px solid #ff6a00}
+    .left-panel {
+      flex: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
 
-        /* 强化标记样式：更大、更醒目 */
-        .custom-marker {
-            width: 40px;height: 40px;border-radius: 50%;
-            display: flex;align-items: center;justify-content: center;
-            color: #fff;font-size: 20px;font-weight: bold;
-            animation: pulse 1.5s infinite ease-in-out;
-            border: 2px solid #fff;
-        }
-        @keyframes pulse{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,106,0,0.7)}50%{transform:scale(1.2);box-shadow:0 0 15px 5px rgba(255,106,0,0.5)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,106,0,0.7)}}
-        .marker-checkin{background:#ff6a00}
-        .marker-security{background:#f44336}
-        .marker-gate{background:#4caf50}
-        .marker-toilet{background:#2196f3}
-        .marker-shop{background:#9c27b0}
-        .marker-restaurant{background:#ff9800}
-        .marker-baggage{background:#00bcd4}
-        .marker-lost{background:#795548}
-        .marker-special{background:#e91e63}
-        .marker-transport{background:#673ab7}
-        .marker-waiting{background:#009688}
+    .func-section {
+      flex: 2;
+      background: #fff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
+      display: flex;
+      flex-direction: column;
+    }
 
-        /* 点位标签样式 */
-        .marker-label {
-            background: rgba(255,255,255,0.9);
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 12px;
-            color: #333;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+    .title {
+      font-size: 22px;
+      color: #005792;
+      text-align: center;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
 
-        /* 优化红线样式：适配缩放，无箭头 */
-        .route-line {
-            stroke: #ff0000 !important; /* 纯红色 */
-            stroke-width: 8px !important; /* 适中宽度，适配缩放 */
-            stroke-opacity: 0.8 !important; /* 轻微透明，避免遮挡地图 */
-            stroke-linecap: round !important;
-            stroke-linejoin: round !important;
-            z-index: 1000 !important;
-            /* 关键：添加缩放适配 */
-            stroke-weight-fixed: true !important;
-        }
-    </style>
+    .func-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .func-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 12px;
+      background: #005792;
+      color: #fff;
+      cursor: pointer;
+      transition: all .2s;
+      font-size: 14px;
+    }
+
+    .func-btn:hover {
+      transform: scale(1.03)
+    }
+
+    .func-btn-checkin {
+      grid-column: span 2;
+      background: #ff6a00
+    }
+
+    .func-icon {
+      font-size: 26px;
+      margin-bottom: 6px
+    }
+
+    .map-section {
+      flex: 3;
+      background: #fff;
+      border-radius: 18px;
+      padding: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .08);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map-title {
+      font-size: 16px;
+      color: #005792;
+      text-align: center;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .airport-map-container {
+      flex: 1;
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #eee;
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+    }
+
+    #mapContainer {
+      width: 100%;
+      height: 100%;
+    }
+
+    .ctrl-btns {
+      height: 60px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      justify-content: center
+    }
+
+    .mic-btn-ctrl {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      background: #005792;
+      color: #fff;
+      font-size: 26px;
+      cursor: pointer
+    }
+
+    .mic-btn-ctrl.active {
+      background: #f44336;
+      transform: scale(1.1)
+    }
+
+    .stop-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #f44336;
+      color: #fff;
+      cursor: pointer
+    }
+
+    .right-panel {
+      width: 420px;
+      background: #fff;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .08)
+    }
+
+    .chat-box {
+      height: 100%;
+      overflow-y: auto
+    }
+
+    .chat-bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      margin: 8px 0;
+      font-size: 14px
+    }
+
+    .user-bubble {
+      background: #005792;
+      color: #fff;
+      margin-left: auto
+    }
+
+    .system-bubble {
+      background: #f8f9fa;
+      color: #333;
+      margin-right: auto;
+      border: 1px solid #eee
+    }
+
+    .permission-bubble {
+      background: #fff3e0;
+      color: #ff6a00;
+      border-left: 3px solid #ff6a00
+    }
+
+    /* 标记样式 - 更醒目 */
+    .custom-marker {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 20px;
+      font-weight: bold;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .custom-marker:hover {
+      transform: scale(1.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .marker-checkin {
+      background: #ff6a00
+    }
+
+    .marker-security {
+      background: #f44336
+    }
+
+    .marker-gate {
+      background: #4caf50
+    }
+
+    .marker-toilet {
+      background: #2196f3
+    }
+
+    .marker-shop {
+      background: #9c27b0
+    }
+
+    .marker-restaurant {
+      background: #ff9800
+    }
+
+    .marker-baggage {
+      background: #00bcd4
+    }
+
+    .marker-lost {
+      background: #795548
+    }
+
+    .marker-special {
+      background: #e91e63
+    }
+
+    .marker-transport {
+      background: #673ab7
+    }
+
+    .marker-waiting {
+      background: #009688
+    }
+
+    /* 标签样式 */
+    .marker-label {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #005792;
+      border-radius: 16px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: #005792;
+      font-weight: bold;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      pointer-events: none;
+    }
+
+    /* 路线样式 */
+    .amap-polyline {
+      stroke: #ff0000 !important;
+      stroke-width: 6px !important;
+      stroke-opacity: 0.9 !important;
+    }
+  </style>
 </head>
+
 <body>
-<div class="container">
+  <div class="container">
     <div class="left-panel">
-        <div class="func-section">
-            <div class="title">✈️ 首都机场 T3 语音导航</div>
-            <div class="func-grid">
-                <button class="func-btn func-btn-checkin" data-cmd="checkin">
-                    <div class="func-icon">🛄</div><div>值机柜台</div>
-                </button>
-                <button class="func-btn" data-cmd="security">
-                    <div class="func-icon">🔍</div><div>安检区</div>
-                </button>
-                <button class="func-btn" data-cmd="gate">
-                    <div class="func-icon">🚪</div><div>登机口A12</div>
-                </button>
-                <button class="func-btn" data-cmd="restaurant">
-                    <div class="func-icon">🍽️</div><div>餐厅</div>
-                </button>
-                <button class="func-btn" data-cmd="toilet">
-                    <div class="func-icon">🚻</div><div>卫生间</div>
-                </button>
-                <button class="func-btn" data-cmd="shop">
-                    <div class="func-icon">🛍️</div><div>免税店</div>
-                </button>
-                <button class="func-btn" data-cmd="baggage">
-                    <div class="func-icon">🧳</div><div>行李提取</div>
-                </button>
-                <button class="func-btn" data-cmd="lost">
-                    <div class="func-icon">🔎</div><div>失物招领</div>
-                </button>
-                <button class="func-btn" data-cmd="special">
-                    <div class="func-icon">👴</div><div>特殊旅客</div>
-                </button>
-                <button class="func-btn" data-cmd="transport">
-                    <div class="func-icon">🚌</div><div>交通中心</div>
-                </button>
-            </div>
+      <div class="func-section">
+        <div class="title">✈️ 首都机场 T3 语音导航</div>
+        <div class="func-grid">
+          <button class="func-btn func-btn-checkin" data-cmd="checkin">
+            <div class="func-icon">🛄</div>
+            <div>值机柜台</div>
+          </button>
+          <button class="func-btn" data-cmd="security">
+            <div class="func-icon">🔍</div>
+            <div>安检区</div>
+          </button>
+          <button class="func-btn" data-cmd="gate">
+            <div class="func-icon">🚪</div>
+            <div>登机口A12</div>
+          </button>
+          <button class="func-btn" data-cmd="restaurant">
+            <div class="func-icon">🍽️</div>
+            <div>餐厅</div>
+          </button>
+          <button class="func-btn" data-cmd="toilet">
+            <div class="func-icon">🚻</div>
+            <div>卫生间</div>
+          </button>
+          <button class="func-btn" data-cmd="shop">
+            <div class="func-icon">🛍️</div>
+            <div>免税店</div>
+          </button>
+          <button class="func-btn" data-cmd="baggage">
+            <div class="func-icon">🧳</div>
+            <div>行李提取</div>
+          </button>
+          <button class="func-btn" data-cmd="lost">
+            <div class="func-icon">🔎</div>
+            <div>失物招领</div>
+          </button>
+          <button class="func-btn" data-cmd="special">
+            <div class="func-icon">👴</div>
+            <div>特殊旅客</div>
+          </button>
+          <button class="func-btn" data-cmd="transport">
+            <div class="func-icon">🚌</div>
+            <div>交通中心</div>
+          </button>
         </div>
+      </div>
 
-        <div class="map-section">
-            <div class="map-title">📍 首都机场 T3 航站楼 · 高德地图精准指引</div>
-            <div class="airport-map-container" id="mapContainer"></div>
+      <div class="map-section">
+        <div class="map-title">📍 首都机场 T3 · 超分散布局便于查看路线</div>
+        <div class="airport-map-container">
+          <div id="mapContainer"></div>
         </div>
+      </div>
 
-        <div class="ctrl-btns">
-            <button class="stop-btn" id="stopBtn">⏹️ 停止播报</button>
-            <button class="mic-btn-ctrl" id="micBtn">🎤</button>
-        </div>
+      <div class="ctrl-btns">
+        <button class="stop-btn" id="stopBtn">⏹️ 停止播报</button>
+        <button class="mic-btn-ctrl" id="micBtn">🎤</button>
+      </div>
     </div>
 
     <div class="right-panel">
-        <div class="chat-box" id="chatBox">
-            <div class="chat-bubble system-bubble">✈️ 首都机场 T3 语音导航已就绪</div>
-            <div class="chat-bubble system-bubble">🗣️ 支持语音：值机、安检、登机口、卫生间等</div>
-            <div class="chat-bubble permission-bubble">💡 Edge/Chrome浏览器可直接使用语音识别</div>
-        </div>
+      <div class="chat-box" id="chatBox">
+        <div class="chat-bubble system-bubble">✈️ 首都机场 T3 语音导航已就绪</div>
+        <div class="chat-bubble system-bubble">🗣️ 支持语音：安检、登机口、餐厅、卫生间等</div>
+        <div class="chat-bubble permission-bubble">💡 地点已超分散布局，路线更清晰</div>
+      </div>
     </div>
-</div>
+  </div>
 
-<script>
-// 1. 首都机场T3 超精准坐标（细化到具体区域）
-const AIRPORT_LOCATIONS = {
-    'T3中心': { lng: 116.610823, lat: 40.079856, type: 'checkin', icon: '📍', desc: 'T3航站楼中心' },
-    '值机柜台': { lng: 116.610512, lat: 40.080123, type: 'checkin', icon: '🛄', desc: '国内值机区C岛' },
-    '安检区': { lng: 116.611034, lat: 40.079812, type: 'security', icon: '🔍', desc: '国内安检通道1-5' },
-    '登机口A12': { lng: 116.612011, lat: 40.079008, type: 'gate', icon: '🚪', desc: 'A12登机口（国内出发）' },
-    '餐厅': { lng: 116.609876, lat: 40.080543, type: 'restaurant', icon: '🍽️', desc: '2层中西餐厅' },
-    '行李提取': { lng: 116.611567, lat: 40.078567, type: 'baggage', icon: '🧳', desc: '1层行李提取转盘10-15' },
-    '失物招领': { lng: 116.609543, lat: 40.080876, type: 'lost', icon: '🔎', desc: '1层服务台旁' },
-    '特殊旅客': { lng: 116.610789, lat: 40.080345, type: 'special', icon: '👴', desc: '值机区特殊旅客服务台' },
-    '卫生间': { lng: 116.611543, lat: 40.079543, type: 'toilet', icon: '🚻', desc: '安检后2层卫生间' },
-    '免税店': { lng: 116.611234, lat: 40.080234, type: 'shop', icon: '🛍️', desc: '2层免税店（美妆区）' },
-    '候机区': { lng: 116.612345, lat: 40.078876, type: 'waiting', icon: '⏳', desc: 'A12登机口候机区' },
-    '交通中心': { lng: 116.609234, lat: 40.078654, type: 'transport', icon: '🚌', desc: 'T3交通中心（机场快轨）' }
-};
+  <script>
+    // ================== 首都机场T3坐标数据 - 超分散布局 ==================
+    // 以值机柜台为中心，其他地点分布在八个不同方向，距离更远
+    // 让每条路线都有足够的空间显示
+    const AIRPORT_LOCATIONS = {
+      // 中心区域 - 值机柜台作为起点
+      '值机柜台': { lng: 116.610512, lat: 40.080123, type: 'checkin', icon: '🛄', desc: '国内值机区C岛' },
 
-// 2. 指令配置
-const CMD_MAP = {
-    checkin: { name: '值机柜台', desc: '值机柜台位于3号门区域C岛，请提前2小时办理登机牌及行李托运。', route: null },
-    security: { name: '安检区', desc: '安检通道在值机柜台后方50米处，请提前取出电脑、充电宝等物品。', route: { from: '值机柜台', to: '安检区' } },
-    gate: { name: '登机口A12', desc: '登机口A12位于安检区右侧，步行约3分钟，建议提前30分钟到达。', route: { from: '安检区', to: '登机口A12' } },
-    restaurant: { name: '餐厅', desc: '餐厅位于航站楼2层西侧，提供中西餐、咖啡及简餐，营业时间6:00-22:00。', route: null },
-    toilet: { name: '卫生间', desc: '卫生间位于安检区右侧10米处，二楼设有母婴室及无障碍卫生间。', route: null },
-    shop: { name: '免税店', desc: '免税店位于2层候机区，涵盖美妆、烟酒、奢侈品等，支持支付宝/微信支付。', route: null },
-    baggage: { name: '行李提取', desc: '行李提取区位于1层到达大厅，按航班号查找对应转盘，提取后可前往交通中心。', route: null },
-    lost: { name: '失物招领', desc: '失物招领处位于1层服务台旁，联系电话：010-64599567，工作时间8:00-20:00。', route: null },
-    special: { name: '特殊旅客', desc: '特殊旅客服务台位于值机大厅右侧，提供轮椅、母婴室、优先登机等服务。', route: null },
-    transport: { name: '交通中心', desc: '交通中心包含机场大巴、出租车、地铁，机场快轨直达市区。', route: null },
-    waiting: { name: '候机区', desc: '候机区位于各登机口旁，提供充电、饮水、休息区等服务。', route: null }
-};
+      // 正北方向 (远)
+      'T3中心': { lng: 116.610823, lat: 40.081356, type: 'checkin', icon: '📍', desc: 'T3航站楼中心' },
 
-// 3. 关键词匹配（扩充关键词，提升识别率）
-const KEYWORDS = {
-    checkin: ['值机','登机牌','托运行李','办票','C岛','值机柜台'],
-    security: ['安检','安全检查','过安检','安检通道','1-5号安检'],
-    gate: ['登机口','A12','上飞机','登机','国内出发'],
-    restaurant: ['餐厅','吃饭','饿了','咖啡','中西餐','简餐'],
-    toilet: ['卫生间','厕所','洗手间','母婴室','无障碍卫生间'],
-    shop: ['免税店','购物','买东西','美妆','烟酒','奢侈品'],
-    baggage: ['行李','提取','行李领取','转盘','10-15号转盘'],
-    lost: ['失物','招领','丢东西','服务台','找东西'],
-    special: ['特殊旅客','轮椅','老人','母婴','优先登机'],
-    transport: ['交通','大巴','出租车','地铁','快轨','交通中心'],
-    waiting: ['候机区','等待','休息','充电','饮水']
-};
+      // 西北方向
+      '餐厅': { lng: 116.608876, lat: 40.081043, type: 'restaurant', icon: '🍽️', desc: '2层中西餐厅' },
 
-// 4. 高德地图全局变量
-let map = null;
-let markers = [];
-let routePolyline = null;
-// 移除箭头相关变量
-// let routeArrowMarker = null;
-// let arrowIcon = null;
+      // 东北方向
+      '登机口A12': { lng: 116.613011, lat: 40.080408, type: 'gate', icon: '🚪', desc: 'A12登机口（国内出发）' },
 
-// 5. 辅助函数
-function getLocation(name) {
-    return AIRPORT_LOCATIONS[name] || null;
-}
+      // 正东方向
+      '安检区': { lng: 116.612534, lat: 40.079812, type: 'security', icon: '🔍', desc: '国内安检通道1-5' },
+      '免税店': { lng: 116.613234, lat: 40.079734, type: 'shop', icon: '🛍️', desc: '2层免税店（美妆区）' },
 
-// 6. 初始化高德地图（修复路线显示问题）
-function initAMap() {
-    if (typeof AMap === 'undefined') {
-        addMessage('❌ 高德地图API加载失败，请检查Key是否正确', 'system');
+      // 东南方向
+      '行李提取': { lng: 116.612567, lat: 40.077867, type: 'baggage', icon: '🧳', desc: '1层行李提取转盘10-15' },
+      '交通中心': { lng: 116.611734, lat: 40.077954, type: 'transport', icon: '🚌', desc: 'T3交通中心（机场快轨）' },
+
+      // 正南方向
+      '候机区': { lng: 116.610845, lat: 40.078176, type: 'waiting', icon: '⏳', desc: 'A12登机口候机区' },
+
+      // 西南方向
+      '失物招领': { lng: 116.608543, lat: 40.078876, type: 'lost', icon: '🔎', desc: '1层服务台旁' },
+      '卫生间': { lng: 116.608943, lat: 40.078643, type: 'toilet', icon: '🚻', desc: '安检后2层卫生间' },
+
+      // 正西方向
+      '特殊旅客': { lng: 116.608289, lat: 40.079845, type: 'special', icon: '👴', desc: '值机区特殊旅客服务台' }
+    };
+
+    // ================== 指令配置 ==================
+    const CMD_MAP = {
+      checkin: { name: '值机柜台', desc: '值机柜台位于3号门区域C岛，请提前2小时办理登机牌及行李托运。', route: null },
+      security: { name: '安检区', desc: '安检通道在值机柜台后方50米处，请提前取出电脑、充电宝等物品。', route: null },
+      gate: { name: '登机口A12', desc: '登机口A12位于安检区右侧，步行约3分钟，建议提前30分钟到达。', route: null },
+      restaurant: { name: '餐厅', desc: '餐厅位于航站楼2层西侧，提供中西餐、咖啡及简餐，营业时间6:00-22:00。', route: null },
+      toilet: { name: '卫生间', desc: '卫生间位于安检区右侧10米处，二楼设有母婴室及无障碍卫生间。', route: null },
+      shop: { name: '免税店', desc: '免税店位于2层候机区，涵盖美妆、烟酒、奢侈品等，支持支付宝/微信支付。', route: null },
+      baggage: { name: '行李提取', desc: '行李提取区位于1层到达大厅，按航班号查找对应转盘，提取后可前往交通中心。', route: null },
+      lost: { name: '失物招领', desc: '失物招领处位于1层服务台旁，联系电话：010-64599567，工作时间8:00-20:00。', route: null },
+      special: { name: '特殊旅客', desc: '特殊旅客服务台位于值机大厅右侧，提供轮椅、母婴室、优先登机等服务。', route: null },
+      transport: { name: '交通中心', desc: '交通中心包含机场大巴、出租车、地铁，机场快轨直达市区。', route: null },
+      waiting: { name: '候机区', desc: '候机区位于各登机口旁，提供充电、饮水、休息区等服务。', route: null }
+    };
+
+    // ================== 关键词匹配 ==================
+    const KEYWORDS = {
+      checkin: ['值机', '登机牌', '托运行李', '办票', 'C岛', '值机柜台'],
+      security: ['安检', '安全检查', '过安检', '安检通道'],
+      gate: ['登机口', 'A12', '上飞机', '登机', '国内出发'],
+      restaurant: ['餐厅', '吃饭', '饿了', '咖啡', '中西餐'],
+      toilet: ['卫生间', '厕所', '洗手间', '母婴室'],
+      shop: ['免税店', '购物', '买东西', '美妆', '烟酒'],
+      baggage: ['行李', '提取', '行李领取', '转盘'],
+      lost: ['失物', '招领', '丢东西', '服务台'],
+      special: ['特殊旅客', '轮椅', '老人', '母婴'],
+      transport: ['交通', '大巴', '出租车', '地铁', '快轨'],
+      waiting: ['候机区', '等待', '休息', '充电']
+    };
+
+    // ================== 全局变量 ==================
+    let map = null;
+    let markers = [];
+    let routePolyline = null;
+
+    // ================== 辅助函数 ==================
+    function getLocation(name) {
+      return AIRPORT_LOCATIONS[name] || null;
+    }
+
+    // ================== 初始化地图 ==================
+    function initMap() {
+      const container = document.getElementById('mapContainer');
+      if (!container) {
+        console.error('地图容器不存在');
         return;
-    }
+      }
 
-    try {
+      if (typeof AMap === 'undefined') {
+        addMessage('❌ 高德地图API加载失败，请检查网络或Key', 'system');
+        return;
+      }
+
+      try {
+        // 创建地图实例 - 启用所有交互
         map = new AMap.Map('mapContainer', {
-            zoom: 19,
-            center: [AIRPORT_LOCATIONS['T3中心'].lng, AIRPORT_LOCATIONS['T3中心'].lat],
-            viewMode: '3D',
-            resizeEnable: true,
-            features: ['road', 'building', 'poi', 'bg', 'point'],
-            mapStyle: 'amap://styles/normal'
+          zoom: 15.5,                       // 初始缩放级别更低，显示全貌
+          center: [116.610512, 40.080123],  // 值机柜台为中心
+          viewMode: '2D',
+          scrollWheel: true,
+          dragEnable: true,
+          doubleClickZoom: true,
+          keyboardEnable: true,
+          zoomEnable: true,
+          touchZoom: true,
+          pinchEnable: true,
+          rotateEnable: false,
+          resizeEnable: true
         });
 
-        // 移除箭头图标加载代码
-        // arrowIcon = new AMap.Icon({...});
+        // 地图加载完成
+        map.on('complete', function () {
+          console.log('地图加载完成');
+          addMessage('✅ 高德地图加载成功，地点已超分散布局', 'system');
 
-        // 初始显示多个核心点位
-        const corePoints = ['值机柜台', '安检区', '登机口A12'];
-        corePoints.forEach(name => {
-            const loc = getLocation(name);
-            addMarker(loc, name, true);
+          // 添加所有标记
+          addAllMarkers();
+
+          // 调整视野显示所有标记
+          if (markers.length > 0) {
+            map.setFitView(markers);
+          }
         });
 
-        addMessage('✅ 高德地图加载成功（首都机场T3精细视图）', 'system');
-    } catch (e) {
-        addMessage(`❌ 地图初始化失败：${e.message}`, 'system');
+      } catch (e) {
+        console.error('初始化失败:', e);
+        addMessage(`❌ 地图初始化失败: ${e.message}`, 'system');
+      }
     }
-}
 
-// 7. 添加标记点
-function addMarker(loc, name, showLabel=false) {
-    if (!loc) return;
+    // ================== 添加所有标记 ==================
+    function addAllMarkers() {
+      for (const [name, loc] of Object.entries(AIRPORT_LOCATIONS)) {
+        // 创建标记内容
+        const markerContent = document.createElement('div');
+        markerContent.className = `custom-marker marker-${loc.type}`;
+        markerContent.innerHTML = loc.icon;
+        markerContent.title = `${name}\n${loc.desc}`;
 
-    const markerContent = document.createElement('div');
-    markerContent.className = `custom-marker marker-${loc.type}`;
-    markerContent.innerText = loc.icon || '📍';
-    markerContent.title = `${name}：${loc.desc}`;
-    
-    const marker = new AMap.Marker({
-        position: [loc.lng, loc.lat],
-        content: markerContent,
-        offset: new AMap.Pixel(-20, -20),
-        zIndex: 1000,
-        animation: 'AMAP_ANIMATION_DROP'
-    });
-
-    marker.setMap(map);
-    markers.push(marker);
-
-    if (showLabel) {
-        const label = new AMap.Text({
-            text: name,
-            position: [loc.lng, loc.lat + 0.0001],
-            offset: new AMap.Pixel(-20, 0),
-            className: 'marker-label',
-            zIndex: 1001
+        // 创建标记
+        const marker = new AMap.Marker({
+          position: [loc.lng, loc.lat],
+          content: markerContent,
+          offset: new AMap.Pixel(-20, -20),
+          clickable: true
         });
+
+        // 标记点击事件
+        marker.on('click', () => {
+          addMessage(`📍 ${name}：${loc.desc}`, 'system');
+          speakText(`${name}，${loc.desc}`);
+        });
+
+        marker.setMap(map);
+        markers.push(marker);
+
+        // 添加文字标签
+        const label = new AMap.Text({
+          text: name,
+          position: [loc.lng, loc.lat + 0.00015],
+          offset: new AMap.Pixel(0, -35),
+          style: {
+            'background-color': 'white',
+            'border': '1px solid #005792',
+            'border-radius': '16px',
+            'padding': '4px 10px',
+            'font-size': '12px',
+            'color': '#005792',
+            'font-weight': 'bold',
+            'box-shadow': '0 2px 6px rgba(0,0,0,0.2)',
+            'white-space': 'nowrap'
+          }
+        });
+
         label.setMap(map);
         markers.push(label);
+      }
     }
-}
 
-// 8. 绘制路线（移除箭头，优化红线缩放）
-function drawRoute(fromLoc, toLoc) {
-    if (!fromLoc || !toLoc) return;
+    // ================== 绘制从值机柜台到目标点的路线并放大到最佳视野（无闪烁）==================
+    function drawRouteFromCheckin(toName) {
+      const fromLoc = AIRPORT_LOCATIONS['值机柜台'];
+      const toLoc = AIRPORT_LOCATIONS[toName];
 
-    // 优化后的红线样式：适配缩放，无箭头
-    routePolyline = new AMap.Polyline({
-        path: [[fromLoc.lng, fromLoc.lat], [toLoc.lng, toLoc.lat]],
-        strokeColor: '#ff0000', // 纯红色
-        strokeWeight: 8,        // 适中宽度，适配缩放
-        strokeOpacity: 0.8,     // 轻微透明，避免遮挡
-        strokeStyle: 'solid',
-        lineJoin: 'round',
-        lineCap: 'round',
-        zIndex: 1000,
-        className: 'route-line',
-        // 关键：开启固定宽度（适配缩放）
-        strokeWeightFixed: true
-    });
-    routePolyline.setMap(map);
+      if (!fromLoc || !toLoc) {
+        addMessage(`❌ 无法绘制路线：找不到起点或终点`, 'system');
+        return;
+      }
 
-    // 移除箭头绘制代码
-    // const midLng = (fromLoc.lng + toLoc.lng) / 2;
-    // const midLat = (fromLoc.lat + toLoc.lat) / 2;
-    // routeArrowMarker = new AMap.Marker({...});
-}
+      // 清除旧路线
+      if (routePolyline) {
+        routePolyline.remove();
+      }
 
-// 移除角度计算函数（不再需要）
-// function getAngle(from, to) {...}
+      // 创建新路线
+      routePolyline = new AMap.Polyline({
+        path: [
+          [fromLoc.lng, fromLoc.lat],
+          [toLoc.lng, toLoc.lat]
+        ],
+        strokeColor: '#ff0000',
+        strokeWeight: 6,
+        strokeOpacity: 0.9,
+        strokeStyle: 'solid'
+      });
 
-// 9. 清除地图内容（移除箭头清除逻辑）
-function clearMap() {
-    markers.forEach(item => item.remove());
-    markers = [];
-    
-    if (routePolyline) {
+      routePolyline.setMap(map);
+
+      // ===== 修复：直接使用 setBounds，不先调用 setZoom 和 panTo，避免闪烁 =====
+      // 计算包含整条路线和边距的边界范围（增加边距，因为地点更分散了）
+      const padding = 0.0015; // 更大的边距，确保路线不贴边
+
+      const minLng = Math.min(fromLoc.lng, toLoc.lng) - padding;
+      const minLat = Math.min(fromLoc.lat, toLoc.lat) - padding;
+      const maxLng = Math.max(fromLoc.lng, toLoc.lng) + padding;
+      const maxLat = Math.max(fromLoc.lat, toLoc.lat) + padding;
+
+      const bounds = new AMap.Bounds(
+        new AMap.LngLat(minLng, minLat),
+        new AMap.LngLat(maxLng, maxLat)
+      );
+
+      // 直接使用 setBounds，高德会自动计算最合适的缩放级别和中心点
+      // 避免多次操作导致的闪烁
+      map.setBounds(bounds);
+
+      // 计算距离并显示
+      const distance = calculateDistance(fromLoc, toLoc);
+      addMessage(`🚶 从值机柜台到${toName}的路线（距离约${distance}米）`, 'system');
+    }
+
+    // ================== 计算两点间距离（简单估算）==================
+    function calculateDistance(loc1, loc2) {
+      // 粗略估算，1度约111公里，这里只是大概显示
+      const latDiff = Math.abs(loc1.lat - loc2.lat) * 111000;
+      const lngDiff = Math.abs(loc1.lng - loc2.lng) * 111000 * Math.cos(loc1.lat * Math.PI / 180);
+      const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+      return Math.round(distance);
+    }
+
+    // ================== 清除路线 ==================
+    function clearRoute() {
+      if (routePolyline) {
         routePolyline.remove();
         routePolyline = null;
-    }
-    // 移除箭头清除代码
-    // if (routeArrowMarker) {
-    //     routeArrowMarker.remove();
-    //     routeArrowMarker = null;
-    // }
-}
-
-// 10. 地图核心操作（修复路线显示逻辑）
-function handleMapCommand(cmd, params) {
-    if (!map) {
-        addMessage('❌ 地图未加载完成，请稍后再试', 'system');
-        return;
+      }
     }
 
-    clearMap();
+    // ================== 聊天消息 ==================
+    function addMessage(text, type = 'system') {
+      const chatBox = document.getElementById('chatBox');
+      const div = document.createElement('div');
+      div.className = `chat-bubble ${type}-bubble`;
+      div.textContent = text;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
 
-    switch(cmd) {
-        case "moveTo":
-            const loc = getLocation(params.name);
-            if (!loc) {
-                addMessage('❌ 点位不存在', 'system');
-                return;
-            }
-            map.setZoom(params.zoom || 20);
-            map.panTo([loc.lng, loc.lat]);
-            addMarker(loc, params.name, true);
-            break;
-        
-        case "showRoute":
-            const fromLoc = getLocation(params.from.name);
-            const toLoc = getLocation(params.to.name);
-            
-            if (!fromLoc || !toLoc) {
-                addMessage('❌ 路线起点/终点不存在', 'system');
-                return;
-            }
-
-            // 强制设置地图缩放级别，确保路线可见
-            map.setZoom(19.5);
-            
-            // 添加起点/终点标记
-            addMarker(fromLoc, params.from.name, true);
-            addMarker(toLoc, params.to.name, true);
-
-            // 绘制红线路线
-            drawRoute(fromLoc, toLoc);
-
-            // 优化视角适配，确保路线完整显示
-            map.setFitView([...markers, routePolyline], true, [50,50]);
-            addMessage(`✅ 已显示【${params.from.name}】→【${params.to.name}】路线`, 'system');
-            break;
-        
-        case "highlight":
-            const highLoc = getLocation(params.name);
-            if (!highLoc) {
-                addMessage('❌ 点位不存在', 'system');
-                return;
-            }
-            addMarker(highLoc, params.name, true);
-            map.setZoom(20);
-            map.panTo([highLoc.lng, highLoc.lat]);
-            break;
-        
-        case "reset":
-            map.setZoom(19);
-            map.panTo([AIRPORT_LOCATIONS['T3中心'].lng, AIRPORT_LOCATIONS['T3中心'].lat]);
-            addMarker(AIRPORT_LOCATIONS['T3中心'], 'T3中心', true);
-            break;
+      // 最多保留15条消息
+      while (chatBox.children.length > 15) {
+        chatBox.removeChild(chatBox.children[0]);
+      }
     }
-}
 
-// 11. 聊天消息
-function addMessage(text, type='system') {
-    const box = document.getElementById('chatBox');
-    const div = document.createElement('div');
-    div.className = `chat-bubble ${type}-bubble`;
-    div.innerText = text;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
-}
+    // ================== 语音播报 ==================
+    function speakText(text) {
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 1;
+        window.speechSynthesis.speak(utterance);
+      } catch (e) {
+        console.log('语音播报失败:', e);
+      }
+    }
 
-// 12. 语音播报
-function speakText(text) {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'zh-CN';
-    u.rate = 1;
-    u.volume = 1;
-    u.pitch = 1;
-    window.speechSynthesis.speak(u);
-}
+    // ================== 处理指令 ==================
+    function handleCommand(input, isButton = false) {
+      let cmd = '';
 
-// 13. 指令处理（修复路线触发逻辑）
-function handleCommand(inputText, isButton=false) {
-    let cmd = '';
-    
-    if (isButton) {
-        cmd = inputText;
+      if (isButton) {
+        cmd = input;
         addMessage(`选择：${CMD_MAP[cmd].name}`, 'user');
-    } else {
-        addMessage(`语音指令：${inputText}`, 'user');
-        const cleanText = inputText.replace(/\s+/g, '').toLowerCase();
-        for (const [c, ks] of Object.entries(KEYWORDS)) {
-            if (ks.some(w => cleanText.includes(w.toLowerCase()))) { 
-                cmd = c; 
-                break; 
-            }
+      } else {
+        addMessage(`语音指令：${input}`, 'user');
+        const cleanText = input.replace(/\s+/g, '').toLowerCase();
+        for (const [key, words] of Object.entries(KEYWORDS)) {
+          if (words.some(w => cleanText.includes(w.toLowerCase()))) {
+            cmd = key;
+            break;
+          }
         }
-    }
+      }
 
-    if (!cmd || !CMD_MAP[cmd]) {
-        addMessage('❌ 未识别，请说：安检、值机、登机口、卫生间等', 'system');
-        speakText('我没听懂，请说安检、值机、登机口、卫生间等指令');
+      if (!cmd || !CMD_MAP[cmd]) {
+        addMessage('❌ 未识别，请说：安检、登机口、餐厅、卫生间等', 'system');
+        speakText('我没听懂，请说安检、登机口、餐厅、卫生间等指令');
         return;
+      }
+
+      const config = CMD_MAP[cmd];
+      addMessage(config.desc, 'system');
+      speakText(config.desc);
+
+      // 清除旧路线
+      clearRoute();
+
+      // 如果是值机柜台按钮，只播报并放大，不画路线
+      if (cmd === 'checkin') {
+        // 放大到值机柜台
+        const loc = AIRPORT_LOCATIONS['值机柜台'];
+        if (loc) {
+          map.setZoom(19);
+          map.panTo([loc.lng, loc.lat]);
+        }
+      } else {
+        // 其他按钮：绘制从值机柜台到目标点的路线并放大到最佳视野（无闪烁）
+        drawRouteFromCheckin(config.name);
+      }
     }
 
-    // 数据面板计数
-    if (!isButton) {
-        window.recordCall('navigation');
-    }
+    // ================== 初始化语音识别 ==================
+    function initVoiceRecognition() {
+      const micBtn = document.getElementById('micBtn');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    const cfg = CMD_MAP[cmd];
-    addMessage(cfg.desc, 'system');
-    speakText(cfg.desc);
-
-    // 强制触发地图操作，确保路线显示
-    if (cfg.route) {
-        // 延迟执行，确保地图完全加载
-        setTimeout(() => {
-            handleMapCommand("showRoute", {
-                from: { name: cfg.route.from },
-                to: { name: cfg.route.to }
-            });
-        }, 100);
-    } else {
-        setTimeout(() => {
-            handleMapCommand("highlight", { name: cfg.name });
-        }, 100);
-    }
-}
-
-// 14. 语音识别
-function initVoiceRecognition() {
-    const micBtn = document.getElementById('micBtn');
-    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition;
-    
-    if (!Recognition) {
-        addMessage('⚠️ 当前浏览器不支持语音识别（建议用Edge/Chrome），请点击按钮操作', 'permission');
-        micBtn.onclick = ()=>{
-            const inputText = prompt('请输入导航指令（如：安检、值机、登机口）：');
-            if(inputText && inputText.trim()){
-                handleCommand(inputText.trim());
-            }
+      if (!SpeechRecognition) {
+        addMessage('⚠️ 浏览器不支持语音识别，请点击按钮', 'permission');
+        micBtn.onclick = () => {
+          const text = prompt('请输入导航指令：');
+          if (text) handleCommand(text);
         };
         return;
-    }
+      }
 
-    const recognition = new Recognition();
-    recognition.lang = 'zh-CN';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'zh-CN';
+      recognition.continuous = false;
+      recognition.interimResults = false;
 
-    let isListening = false;
+      let isListening = false;
 
-    recognition.onresult = (event)=>{
-        const resultText = event.results[0][0].transcript.trim();
-        handleCommand(resultText);
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        handleCommand(text);
         micBtn.classList.remove('active');
         isListening = false;
-    };
+      };
 
-    recognition.onerror = (event)=>{
-        let errorMsg = '';
-        switch(event.error) {
-            case 'no-speech': errorMsg = '未检测到语音，请重试'; break;
-            case 'audio-capture': errorMsg = '未获取到麦克风权限，请开启权限'; break;
-            case 'not-allowed': errorMsg = '麦克风权限被拒绝，请在浏览器设置中开启'; break;
-            default: errorMsg = `语音识别错误：${event.error}`;
-        }
-        addMessage(`❌ ${errorMsg}`, 'system');
-        speakText(errorMsg);
+      recognition.onerror = () => {
+        addMessage(`❌ 语音识别错误`, 'system');
         micBtn.classList.remove('active');
         isListening = false;
-    };
+      };
 
-    recognition.onend = ()=>{
-        if(isListening){
-            addMessage('🎤 语音识别已结束', 'system');
-        }
+      recognition.onend = () => {
         micBtn.classList.remove('active');
         isListening = false;
-    };
+      };
 
-    micBtn.onmousedown = (e)=>{
-        e.preventDefault();
-        if(isListening) return;
-        
-        try {
+      micBtn.onclick = () => {
+        if (isListening) {
+          recognition.stop();
+        } else {
+          try {
             recognition.start();
             isListening = true;
             micBtn.classList.add('active');
-            addMessage('🎤 正在倾听，请说出导航指令（如：安检、值机）', 'system');
-        } catch (err) {
-            addMessage(`❌ 启动语音识别失败：${err.message}`, 'system');
+            addMessage('🎤 正在倾听...', 'system');
+          } catch (e) {
+            addMessage('❌ 启动失败', 'system');
+          }
         }
-    };
+      };
+    }
 
-    micBtn.onmouseup = ()=>{
-        if(isListening){
-            recognition.stop();
-            isListening = false;
-        }
-    };
+    // ================== 页面加载完成 ==================
+    window.addEventListener('load', function () {
+      // 延迟一点确保DOM完全加载
+      setTimeout(initMap, 300);
+      initVoiceRecognition();
 
-    micBtn.onmouseleave = ()=>{
-        if(isListening){
-            recognition.stop();
-            isListening = false;
-        }
-    };
-
-    addMessage('💡 点击麦克风按钮并允许权限，即可语音导航', 'system');
-}
-
-// 15. 页面初始化
-document.addEventListener('DOMContentLoaded', ()=>{
-    // 延长高德API加载等待时间，确保加载完成
-    setTimeout(initAMap, 800);
-    
-    initVoiceRecognition();
-    
-    document.querySelectorAll('.func-btn').forEach(btn=>{
-        btn.addEventListener('click',()=>{
-            handleCommand(btn.dataset.cmd, true);
+      // 为所有按钮绑定点击事件
+      document.querySelectorAll('.func-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          handleCommand(btn.dataset.cmd, true);
         });
-    });
-    
-    document.getElementById('stopBtn').onclick = ()=>{
+      });
+
+      // 停止播报按钮
+      document.getElementById('stopBtn').onclick = () => {
         window.speechSynthesis.cancel();
-        addMessage('⏹️ 已停止语音播报', 'system');
-    };
-});
-</script>
+        addMessage('⏹️ 已停止播报', 'system');
+      };
+    });
+  </script>
 </body>
+
 </html>
