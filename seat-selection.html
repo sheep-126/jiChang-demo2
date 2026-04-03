@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>在线选座</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",sans-serif}
+    body{background:#f5f7fa;padding:20px;text-align:center}
+    .container{max-width:700px;margin:0 auto}
+    h1{color:#007bff;margin:20px 0}
+    .seat{width:50px;height:50px;background:#007bff;color:white;display:inline-block;margin:6px;border-radius:8px;line-height:50px;cursor:pointer}
+    .seat.selected{background:#28a745}
+    .btn-group{margin-top:30px;display:flex;gap:12px;justify-content:center}
+    .btn-group button{padding:16px 40px;border:none;border-radius:12px;font-size:18px;cursor:pointer}
+    #backBtn{background:#6c757d;color:white}
+    #confirm{background:#007bff;color:white}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>💺 选择座位</h1>
+    <div id="seatContainer"></div>
+    <div class="btn-group">
+        <button id="backBtn">返回主页面</button>
+        <button id="confirm">确认选座并打印登机牌</button>
+    </div>
+</div>
+<script>
+// 日志配置：相对路径
+const API_CONFIG = {
+  LOG_API_URL: '/api/log',
+  ENABLE_LOG: true
+};
+
+// 日志函数
+async function recordOperationLog(module, message, level = 'info') {
+  if (!API_CONFIG.ENABLE_LOG) {
+    console.log(`[日志] ${module} | ${level} | ${message}`);
+    return;
+  }
+  try {
+    const response = await fetch(API_CONFIG.LOG_API_URL, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        module: module,
+        level: level,
+        message: message
+      }),
+      credentials: 'same-origin'
+    });
+    if (!response.ok) throw new Error(`日志请求失败：${response.status}`);
+  } catch (e) {
+    console.error(`[日志上传失败] ${e.message}`);
+  }
+}
+
+// 选座逻辑
+let selected = null;
+const container = document.getElementById('seatContainer');
+
+// 生成座位（10行6列）
+for(let row=1;row<=10;row++){
+    for(let col=1;col<=6;col++){
+        const s = document.createElement('div');
+        s.className = 'seat';
+        s.innerText = row + String.fromCharCode(64+col);
+        s.onclick = function(){
+            document.querySelectorAll('.seat.selected').forEach(e=>e.classList.remove('selected'));
+            s.classList.add('selected');
+            selected = s.innerText;
+            recordOperationLog('seat', `用户选择座位：${selected}`); // ✅ module=seat，符合要求
+        };
+        container.appendChild(s);
+    }
+}
+
+// 返回主页面：根目录相对路径
+document.getElementById('backBtn').onclick = () => {
+  recordOperationLog('seat', '用户从选座页面返回主页面');
+  window.location.href = '/index.html'; // ✅ 根目录相对路径，符合要求
+};
+
+// 确认选座
+document.getElementById('confirm').onclick = function(){
+    if(!selected){ 
+      alert('请先选择座位！');
+      recordOperationLog('seat', '用户未选择座位点击确认，操作失败', 'warn');
+      return; 
+    }
+    alert(`✅ 值机成功！\n您的座位：${selected}\n祝您旅途愉快！`);
+    recordOperationLog('seat', `旅客选座成功，座位：${selected}`); // 严格匹配服务器示例
+    window.location.href = '/index.html';
+};
+
+// 页面加载日志
+recordOperationLog('seat', '选座页面加载完成');
+</script>
+</body>
+</html>
